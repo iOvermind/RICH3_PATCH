@@ -42,26 +42,16 @@ if "%choice%"=="1" (
     echo ----------------------------------
     echo 📦 正在準備上傳程序...
 
-    :: 檢查並更新 requirements.txt
-    set "UPDATE_PIP="
-    if exist "requirements.txt" set UPDATE_PIP=1
-    if exist ".venv\" set UPDATE_PIP=1
-    
-    if defined UPDATE_PIP (
-        where pip >nul 2>nul
-        if !errorlevel! equ 0 (
-            echo 🐍 偵測到 Python 環境，更新 requirements.txt...
-            python -m pip freeze ^| findstr /v "file:///" > requirements.txt
-        )
-    )
+    :: 註：requirements.txt 改為手動維護，不再 pip freeze
+    ::     整包環境倒進去會讓 PyInstaller 誤抓一堆套件，EXE 直接肥好幾 MB。
 
     :: 加入所有變更
     git add .
-    
+
     :: 🌟 修正點：把 Commit 跟 Push 的判斷完全拆開
     set "HAS_CHANGES="
     for /f %%i in ('git status --porcelain') do set HAS_CHANGES=1
-    
+
     if not defined HAS_CHANGES (
         echo ⚠️  工作區沒有新變更，跳過 Commit 步驟...
     ) else (
@@ -78,7 +68,7 @@ if "%choice%"=="1" (
     :: 不管剛剛有沒有 Commit，最後都強制推送到遠端檢查一下！
     echo ☁️  正在推送到 GitHub...
     git push "%REPO_URL%" main
-    
+
     if !errorlevel! equ 0 (
         echo ✅ 上傳搞定！收工！
     ) else (

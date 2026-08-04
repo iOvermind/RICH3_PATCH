@@ -4,10 +4,7 @@ import os
 import sys
 import shutil
 import datetime
-import subprocess
 import re
-import io
-from contextlib import redirect_stdout
 
 try:
     from lunar_python import Solar
@@ -15,11 +12,12 @@ except ImportError:
     print("[ERROR][INIT] 靠背，你還沒裝套件啦！先去終端機跑 pip install lunar_python")
     sys.exit(1)
 
-try:
-    from PIL import Image
-except ImportError:
-    print("[ERROR][INIT] 雞歪，少了 PIL 套件！請執行 pip install Pillow")
-    sys.exit(1)
+# =====================================================================
+# 專案設定 (Rich Patch Series)
+# =====================================================================
+GAME_NAME = "大富翁3"
+APP_TITLE = f"{GAME_NAME} Patch"
+TOTAL_STEPS = 6
 
 # =====================================================================
 # 日誌回呼系統與暫存狀態
@@ -34,7 +32,6 @@ def set_callbacks(log_cb, prog_cb):
 
 # 暫存資料夾追蹤 (用於毀屍滅跡)
 temp_extracted = []
-TOTAL_STEPS = 6
 
 def emit_log(msg, step=None, status="INFO"):
     """
@@ -49,7 +46,79 @@ def emit_log(msg, step=None, status="INFO"):
         _progress_callback(step, TOTAL_STEPS)
 
 # =====================================================================
-# 資源釋放與清理 (對應 source 2)
+# 共用工具
+# =====================================================================
+def backup_file(filename):
+    if not os.path.exists(filename):
+        return False
+    bak_name = filename + ".bak"
+    if not os.path.exists(bak_name):
+        shutil.copy2(filename, bak_name)
+        emit_log(f"已建立備份 {bak_name}")
+    else:
+        emit_log(f"{bak_name} 備份已存在，跳過覆蓋以保留最原始檔案")
+    return True
+
+def find_target(target_dir, names):
+    """在目標目錄中不分大小寫尋找第一個存在的檔案"""
+    for name in names:
+        path = os.path.join(target_dir, name)
+        if os.path.exists(path):
+            return path
+    return None
+
+def patch_binary(filename, patches):
+    with open(filename, "rb") as f:
+        data = f.read()
+
+    emit_log(f"開始分析與 Patch {filename} ...")
+    modified_data = data
+    success_count = 0
+
+    for patch in patches:
+        name = patch['name']
+        success = False
+
+        if patch.get('is_regex'):
+            pattern = re.compile(patch['pattern'], re.DOTALL)
+            if pattern.search(modified_data):
+                modified_data = pattern.sub(patch['replacement'], modified_data, count=1)
+                success = True
+        else:
+            for target, replacement in patch['targets']:
+                if target in modified_data:
+                    if filename.upper().endswith(".MKF"):
+                        modified_data = modified_data.replace(target, replacement)
+                    else:
+                        # 只替換第一次出現的特徵碼
+                        modified_data = modified_data.replace(target, replacement, 1)
+                    success = True
+                    break
+
+        if success:
+            emit_log(f"[成功] {name}")
+            success_count += 1
+        else:
+            emit_log(f"[跳過] {name} (找不到特徵碼或已修改)", status="WARN")
+
+    if data != modified_data:
+        with open(filename, "wb") as f:
+            f.write(modified_data)
+        emit_log(f"[完成] {filename} 已儲存修改 ({success_count}/{len(patches)} 項).", status="SUCCESS")
+        return True
+    else:
+        emit_log(f"[提示] {filename} 沒有發生任何變更。", status="WARN")
+        return False
+
+def format_report(results):
+    """把各步驟成果整理成統一格式的摘要"""
+    return "\n".join(
+        f"{'✅' if ok else '⚠️'} {label}: {'成功處理' if ok else '未變動或失敗'}"
+        for label, ok in results
+    )
+
+# =====================================================================
+# 資源釋放與清理
 # =====================================================================
 def extract_bundled_folders(target_dir, step):
     emit_log("開始檢查並釋放內建資源檔...", step=step)
@@ -61,7 +130,7 @@ def extract_bundled_folders(target_dir, step):
     for folder in ['EVENTVOC', 'NEWSVOC', 'SCREEN']:
         src = os.path.join(bundled_dir, folder)
         dest = os.path.join(target_dir, folder)
-        
+
         if os.path.exists(src):
             if not os.path.exists(dest):
                 shutil.copytree(src, dest)
@@ -82,25 +151,11 @@ def cleanup_folders():
                 emit_log(f"清理 {folder} 失敗: {e}", status="WARN")
 
 # =====================================================================
-# 共用工具 (對應 source 1)
-# =====================================================================
-def backup_file(filename):
-    if not os.path.exists(filename):
-        return False
-    bak_name = filename + ".bak"
-    if not os.path.exists(bak_name):
-        shutil.copy2(filename, bak_name)
-        emit_log(f"已建立備份 {bak_name}")
-    else:
-        emit_log(f"{bak_name} 備份已存在，跳過覆蓋以保留最原始檔案")
-    return True
-
-# =====================================================================
-# 核心處理函數 (對應 source 1, 3, 4)
+# 核心處理函數
 # =====================================================================
 def generate_calendars(target_dir, step):
     emit_log("開始產生動態滑動日曆 Cald.a 與 Cald.b...", step=step)
-    
+
     # 備份原始日曆檔
     for cald_name in ['Cald.a', 'Cald.b']:
         cald_file = os.path.join(target_dir, cald_name)
@@ -113,84 +168,43 @@ def generate_calendars(target_dir, step):
     start_date = datetime.date(start_year, 1, 1)
     total_days = 14612
     end_date = start_date + datetime.timedelta(days=total_days - 1)
-    
+
     emit_log(f"涵蓋範圍：{start_date} 至 {end_date} (共 {total_days} 天)")
-    
+
     a_data = bytearray()
     b_data = bytearray()
     current_date = start_date
     days_count = 0
-    
+
     while current_date <= end_date:
         day, month, year = current_date.day, current_date.month, current_date.year
         a_data.extend(bytes([day, month]) + year.to_bytes(2, byteorder='little'))
-        
+
         solar = Solar.fromYmd(year, month, day)
         lunar = solar.getLunar()
         b_data.extend(bytes([lunar.getDay(), abs(lunar.getMonth())]) + lunar.getYear().to_bytes(2, byteorder='little'))
-        
+
         current_date += datetime.timedelta(days=1)
         days_count += 1
-        
+
     with open(os.path.join(target_dir, "Cald.a"), "wb") as f: f.write(a_data)
     with open(os.path.join(target_dir, "Cald.b"), "wb") as f: f.write(b_data)
-        
+
     emit_log("日曆產生完畢！完美瘦身避免 Buffer Overflow。")
     return days_count
 
-def patch_binary(filename, patches):
-    with open(filename, "rb") as f:
-        data = f.read()
-        
-    emit_log(f"開始分析與 Patch {filename} ...")
-    modified_data = data
-    success_count = 0
-    
-    for patch in patches:
-        name = patch['name']
-        success = False
-        
-        if patch.get('is_regex'):
-            pattern = re.compile(patch['pattern'], re.DOTALL)
-            if pattern.search(modified_data):
-                modified_data = pattern.sub(patch['replacement'], modified_data, count=1)
-                success = True
-        else:
-            for target, replacement in patch['targets']:
-                if target in modified_data:
-                    if filename.upper().endswith(".MKF"):
-                        modified_data = modified_data.replace(target, replacement)
-                    else:
-                        modified_data = modified_data.replace(target, replacement, 1)
-                    success = True
-                    break
-                
-        if success:
-            emit_log(f"[成功] {name}")
-            success_count += 1
-        else:
-            emit_log(f"[跳過] {name} (找不到特徵碼或已修改)", status="WARN")
-            
-    if data != modified_data:
-        with open(filename, "wb") as f:
-            f.write(modified_data)
-        emit_log(f"[完成] {filename} 已儲存修改 ({success_count}/{len(patches)} 項).", status="SUCCESS")
-        return True
-    else:
-        emit_log(f"[提示] {filename} 沒有發生任何變更。", status="WARN")
-        return False
-
 def patch_exe(target_dir, step, total_days):
     emit_log("開始尋找主程式並進行修改...", step=step)
-    exe_target = next((os.path.join(target_dir, name) for name in ["RICH3.EXE", "RICH3S.EXE", "rich3.exe", "rich3s.exe"] if os.path.exists(os.path.join(target_dir, name))), None)
-            
+    # 大富翁3 的主程式為 RICH3.EXE / RICH3S.EXE
+    exe_target = find_target(target_dir, ["RICH3.EXE", "RICH3S.EXE", "rich3.exe", "rich3s.exe"])
+
     if not exe_target:
         emit_log("找不到 RICH3.EXE 或 RICH3S.EXE！請確認檔案在目標目錄。", status="ERROR")
         return False
-        
+
     emit_log(f"找到主程式：{exe_target}")
     backup_file(exe_target)
-    
+
     days_hex = total_days.to_bytes(2, byteorder='little')
     exe_patches = [
         {"name": "多人競賽也可一個人玩", "targets": [(bytes.fromhex("3B 46 C8 7F 0E"), bytes.fromhex("3B 46 C8 90 90"))]},
@@ -221,17 +235,17 @@ def patch_exe(target_dir, step, total_days):
         {"name": "破解光碟檢查 (相容項 4)", "targets": [(bytes.fromhex("56 11 02 00 3A 5C"), bytes.fromhex("56 11 01 00 5C 5C"))]},
         {"name": "破解光碟檢查 (相容項 5)", "targets": [(bytes.fromhex("C4 7E 06 98 AB"), bytes.fromhex("C4 7E 06 90 AB"))]},
     ]
-    
+
     return patch_binary(exe_target, exe_patches)
 
 def patch_map_mkf(target_dir, step):
     emit_log("開始處理 MAP.MKF 修正物價...", step=step)
-    map_target = next((os.path.join(target_dir, name) for name in ["MAP.MKF", "map.mkf"] if os.path.exists(os.path.join(target_dir, name))), None)
-            
+    map_target = find_target(target_dir, ["MAP.MKF", "map.mkf"])
+
     if not map_target:
         emit_log("找不到 MAP.MKF！跳過地圖檔修改。", status="WARN")
         return False
-        
+
     backup_file(map_target)
     map_patches = [
         {"name": "台北新生南路蓋屋 360 -> 3600", "targets": [(bytes.fromhex("FC 08 00 00 10 0E"), bytes.fromhex("FC 08 00 00 68 01"))]},
@@ -239,15 +253,46 @@ def patch_map_mkf(target_dir, step):
     ]
     return patch_binary(map_target, map_patches)
 
+def read_mkf_chunks(path):
+    """讀取 MKF 封裝檔並依照索引表切成一塊塊資料"""
+    with open(path, 'rb') as f:
+        data = f.read()
+
+    offsets, curr = [], 0
+    while curr < len(data):
+        offset = int.from_bytes(data[curr:curr + 4], byteorder='little')
+        offsets.append(offset)
+        curr += 4
+        if len(offsets) > 1 and curr >= offsets[0]:
+            break
+
+    return [data[offsets[i]:offsets[i + 1]] for i in range(len(offsets) - 1)]
+
+def write_mkf_chunks(path, chunks):
+    """重建索引表並把資料塊重新封裝回 MKF"""
+    current_offset = (len(chunks) + 1) * 4
+    new_offsets = []
+
+    for chunk in chunks:
+        new_offsets.append(current_offset)
+        current_offset += len(chunk)
+    new_offsets.append(current_offset)
+
+    with open(path, 'wb') as f:
+        for off in new_offsets:
+            f.write(off.to_bytes(4, byteorder='little'))
+        for chunk in chunks:
+            f.write(chunk)
+
 def patch_screen_mkf(target_dir, step):
     emit_log("開始處理畫面封裝檔 SCREEN.MKF...", step=step)
     try:
         files_in_dir = os.listdir(target_dir)
     except FileNotFoundError:
         return False
-        
+
     orig_mkf_path = next((os.path.join(target_dir, f) for f in files_in_dir if f.lower() == 'screen.mkf'), None)
-            
+
     if not orig_mkf_path:
         emit_log("目標目錄找不到 SCREEN.MKF 啦！", status="ERROR")
         return False
@@ -258,18 +303,7 @@ def patch_screen_mkf(target_dir, step):
         emit_log("沒找到 screen 資料夾，幫你建一個。有檔案再來跑！", status="WARN")
         return False
 
-    with open(orig_mkf_path, 'rb') as f:
-        data = f.read()
-
-    offsets, curr = [], 0
-    while curr < len(data):
-        offset = int.from_bytes(data[curr:curr+4], byteorder='little')
-        offsets.append(offset)
-        curr += 4
-        if len(offsets) > 1 and curr >= offsets[0]:
-            break
-
-    chunks = [data[offsets[i]:offsets[i+1]] for i in range(len(offsets) - 1)]
+    chunks = read_mkf_chunks(orig_mkf_path)
 
     def extract_num(filepath):
         match = re.search(r'screen_(\d+)', filepath.lower())
@@ -291,20 +325,8 @@ def patch_screen_mkf(target_dir, step):
         return False
 
     backup_file(orig_mkf_path)
-    current_offset = (len(chunks) + 1) * 4
-    new_offsets = []
-    
-    for chunk in chunks:
-        new_offsets.append(current_offset)
-        current_offset += len(chunk)
-    new_offsets.append(current_offset)
+    write_mkf_chunks(orig_mkf_path, chunks)
 
-    with open(orig_mkf_path, 'wb') as f:
-        for off in new_offsets:
-            f.write(off.to_bytes(4, byteorder='little'))
-        for chunk in chunks:
-            f.write(chunk)
-            
     emit_log(f"畫面重組完成！共貫穿了 {patch_count} 張。", status="SUCCESS")
     return True
 
@@ -314,9 +336,9 @@ def patch_audio_mkf(target_dir, target_name, step):
         files_in_dir = os.listdir(target_dir)
     except FileNotFoundError:
         return False
-        
+
     mkf_path = next((os.path.join(target_dir, f) for f in files_in_dir if f.lower() == f"{target_name.lower()}.mkf"), None)
-            
+
     if not mkf_path:
         emit_log(f"找不到 {target_name}.MKF！", status="ERROR")
         return False
@@ -326,26 +348,15 @@ def patch_audio_mkf(target_dir, target_name, step):
         emit_log(f"沒找到 {target_name} 資料夾，跳過。", status="WARN")
         return False
 
-    with open(mkf_path, 'rb') as f:
-        data = f.read()
-
-    offsets, curr = [], 0
-    while curr < len(data):
-        offset = int.from_bytes(data[curr:curr+4], byteorder='little')
-        offsets.append(offset)
-        curr += 4
-        if len(offsets) > 1 and curr >= offsets[0]:
-            break
-
-    chunks = [data[offsets[i]:offsets[i+1]] for i in range(len(offsets) - 1)]
+    chunks = read_mkf_chunks(mkf_path)
 
     pattern = re.compile(rf"{target_name}_(\d+)\.voc", re.IGNORECASE)
     patch_count = 0
-    
+
     for f in os.listdir(patch_dir):
         match = pattern.search(f)
         if not match: continue
-            
+
         target_idx = int(match.group(1))
         if 0 <= target_idx < len(chunks):
             emit_log(f"注入音檔: {f} -> 索引 {target_idx}")
@@ -360,20 +371,8 @@ def patch_audio_mkf(target_dir, target_name, step):
         return False
 
     backup_file(mkf_path)
-    current_offset = (len(chunks) + 1) * 4
-    new_offsets = []
-    
-    for chunk in chunks:
-        new_offsets.append(current_offset)
-        current_offset += len(chunk)
-    new_offsets.append(current_offset)
+    write_mkf_chunks(mkf_path, chunks)
 
-    with open(mkf_path, 'wb') as f:
-        for off in new_offsets:
-            f.write(off.to_bytes(4, byteorder='little'))
-        for chunk in chunks:
-            f.write(chunk)
-            
     emit_log(f"{mkf_path} 重組完成。替換了 {patch_count} 個音檔。", status="SUCCESS")
     return True
 
@@ -384,23 +383,23 @@ def run_patch(target_dir, on_complete, on_error):
     try:
         # Step 1: 資源釋放
         extract_bundled_folders(target_dir, step=1)
-        
+
         # Step 2: 產生日曆
         total_days = generate_calendars(target_dir, step=2)
-        
+
         # Step 3: 修改 EXE
         exe_res = patch_exe(target_dir, step=3, total_days=total_days)
-        
+
         # Step 4: 修改 MAP
         map_res = patch_map_mkf(target_dir, step=4)
-        
+
         # Step 5: 修改 SCREEN
         screen_res = patch_screen_mkf(target_dir, step=5)
-        
+
         # Step 6: 修改 VOC
         voc_news = patch_audio_mkf(target_dir, "NEWSVOC", step=6)
         voc_event = patch_audio_mkf(target_dir, "EVENTVOC", step=6)
-        
+
     except Exception as e:
         err_msg = f"幹，Patch 發生嚴重錯誤：\n{str(e)}"
         emit_log(err_msg, status="FATAL")
@@ -412,32 +411,35 @@ def run_patch(target_dir, on_complete, on_error):
         cleanup_folders()
 
     # 簡單分析成果
-    report = []
-    report.append("✅ 主程式 (EXE): 成功處理" if exe_res else "⚠️ 主程式 (EXE): 未變動或失敗")
-    report.append("✅ 地圖檔 (MAP): 成功處理" if map_res else "⚠️ 地圖檔 (MAP): 未變動或失敗")
-    report.append("✅ 畫面檔 (SCREEN): 成功處理" if screen_res else "⚠️ 畫面檔 (SCREEN): 未變動或失敗")
-    report.append("✅ 新聞語音 (NEWSVOC): 成功處理" if voc_news else "⚠️ 新聞語音: 未變動或失敗")
-    report.append("✅ 事件語音 (EVENTVOC): 成功處理" if voc_event else "⚠️ 事件語音: 未變動或失敗")
+    report = format_report([
+        ("主程式 (EXE)", exe_res),
+        ("地圖檔 (MAP)", map_res),
+        ("畫面檔 (SCREEN)", screen_res),
+        ("新聞語音 (NEWSVOC)", voc_news),
+        ("事件語音 (EVENTVOC)", voc_event),
+    ])
 
-    final_msg = "大富翁3 全套 Patch 執行完畢！\n\n【執行摘要】\n" + "\n".join(report)
+    final_msg = f"{GAME_NAME} 全套 Patch 執行完畢！\n\n【執行摘要】\n" + report
     emit_log("所有任務完工！爽啦！", step=TOTAL_STEPS, status="DONE")
-    
+
     # 回報成功
     on_complete(final_msg)
 
+# =====================================================================
+# 介面 (Rich Patch Series 共用版型)
+# =====================================================================
 def main():
     # 建立主視窗
     ui_root = tk.Tk()
-    ui_root.title("大富翁3 Patch")
-    
+    ui_root.title(APP_TITLE)
+
     # 設定視窗圖示 (icon.png)
     try:
         # 考慮到 PyInstaller 釋放路徑
         base_path = getattr(sys, '_MEIPASS', os.path.abspath("."))
         icon_path = os.path.join(base_path, "icon.png")
         if os.path.exists(icon_path):
-            img = Image.open(icon_path)
-            photo = tk.PhotoImage(file=icon_path) # 或者用 ImageTk
+            photo = tk.PhotoImage(file=icon_path)
             ui_root.iconphoto(True, photo)
     except Exception as e:
         print(f"[WARN] 載入圖示失敗，算了不影響功能: {e}")
@@ -447,29 +449,29 @@ def main():
     window_height = 320
     screen_width = ui_root.winfo_screenwidth()
     screen_height = ui_root.winfo_screenheight()
-    x_cordinate = int((screen_width/2) - (window_width/2))
-    y_cordinate = int((screen_height/2) - (window_height/2))
+    x_cordinate = int((screen_width / 2) - (window_width / 2))
+    y_cordinate = int((screen_height / 2) - (window_height / 2))
     ui_root.geometry(f"{window_width}x{window_height}+{x_cordinate}+{y_cordinate}")
-    
+
     # 禁止縮放
     ui_root.resizable(False, False)
-    
+
     # 選擇目錄區塊
     top_frame = tk.Frame(ui_root)
     top_frame.pack(padx=15, pady=(15, 0), fill=tk.X)
-    
+
     dir_var = tk.StringVar(value=os.getcwd())
     tk.Label(top_frame, text="遊戲目錄:").pack(side=tk.LEFT)
     tk.Entry(top_frame, textvariable=dir_var, state='readonly', width=32).pack(side=tk.LEFT, padx=5)
-    
+
     def choose_dir():
         from tkinter import filedialog
         d = filedialog.askdirectory(initialdir=dir_var.get())
         if d:
             dir_var.set(d)
-            
+
     tk.Button(top_frame, text="瀏覽...", command=choose_dir).pack(side=tk.LEFT)
-    
+
     start_btn = tk.Button(top_frame, text="開始", command=lambda: start_patch())
     start_btn.pack(side=tk.RIGHT)
 
@@ -485,7 +487,7 @@ def main():
     scrollbar = ttk.Scrollbar(log_frame)
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-    ui_log_text = tk.Text(log_frame, font=("微軟正黑體"), yscrollcommand=scrollbar.set, state=tk.DISABLED, bg="#F0F0F0")
+    ui_log_text = tk.Text(log_frame, font=("微軟正黑體", 10), yscrollcommand=scrollbar.set, state=tk.DISABLED, bg="#F0F0F0")
     ui_log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     scrollbar.config(command=ui_log_text.yview)
 
@@ -503,21 +505,26 @@ def main():
 
     def handle_complete(msg):
         ui_root.destroy()
-        messagebox.showinfo("大富翁3 更新結果", msg)
+        messagebox.showinfo(f"{GAME_NAME} 更新結果", msg)
 
     def handle_error(err_msg):
         ui_root.destroy()
-        messagebox.showerror("大富翁3 更新失敗", err_msg)
+        messagebox.showerror(f"{GAME_NAME} 更新失敗", err_msg)
         sys.exit(1)
 
     set_callbacks(handle_log, handle_progress)
 
     def start_patch():
+        target_dir = dir_var.get()
+        if not os.path.isdir(target_dir):
+            messagebox.showwarning(APP_TITLE, "這個遊戲目錄不存在，先按「瀏覽...」重新選一個吧。")
+            return
+
         start_btn.config(state=tk.DISABLED)
         ui_log_text.config(state=tk.NORMAL)
         ui_log_text.delete(1.0, tk.END)
         ui_log_text.config(state=tk.DISABLED)
-        target_dir = dir_var.get()
+        emit_log(f"目標目錄：{target_dir}")
         run_patch(target_dir, handle_complete, handle_error)
 
     # 啟動 UI 迴圈

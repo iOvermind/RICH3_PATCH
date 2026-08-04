@@ -52,11 +52,8 @@ elif [ "$choice" == "2" ]; then
     echo "----------------------------------"
     echo "📦 正在準備上傳程序..."
 
-    # 檢查並更新 requirements.txt
-    if [ -f "requirements.txt" ] || [ -d ".venv" ]; then
-        echo "🐍 偵測到 Python 環境，更新 requirements.txt..."
-        pip freeze | grep -v "file:///" > requirements.txt 2>/dev/null
-    fi
+    # 註：requirements.txt 改為手動維護，不再 pip freeze
+    #     整包環境倒進去會讓 PyInstaller 誤抓一堆套件，EXE 直接肥好幾 MB。
 
     # 加入所有變更
     git add .
