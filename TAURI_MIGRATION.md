@@ -48,6 +48,8 @@
 | 專案結構 | **兩支獨立 app** | 維持現有兩個 GitHub repo 與 `github.sh`/`github.bat` 流程不變，發佈兩個 exe。 |
 | 舊版去留 | **保留 Python 版到驗證通過** | `main.py` 是驗證 Tauri 版正確性的 oracle，特別是農曆換算。驗證完才移除。 |
 | patch 引擎位置 | **Rust（`src-tauri`）** | 與 `RICH2_EDITOR`（邏輯放前端 TS）刻意不同。patcher 是二進位改檔，放 Rust 可避免給前端開放整個檔案系統權限，二進位處理也乾淨。前端只負責畫面與事件。 |
+| 版本號 | **Tauri 版即為 v1.0.0** | 不跳 2.0.0。三個專案（含 `RICH2_EDITOR`）統一發佈 v1.0.0。 |
+| 舊 release | **驗證通過後直接取代** | 現有 release 與 tag 不保留，一律砍掉重發。 |
 
 ---
 
@@ -169,8 +171,25 @@ RICH2 有 4 條、RICH3 有 14 條 EXE 特徵碼加 2 條 MAP 特徵碼，全部
 
 ---
 
-## 8. 需要你拍板才能動工
+## 8. 發佈計畫
 
-1. **WebView2 的取捨**：接受 Win7/8 使用者需額外安裝執行期嗎？還是要保留 Python 版當作舊系統的備援發佈？
+Tauri 版驗證通過後，三個專案統一發佈 **v1.0.0**，直接取代現有 release：
+
+| Repo | 現有 tag | 現有狀態 | 處置 |
+| :--- | :--- | :--- | :--- |
+| `RICH2_PATCH` | `Rich2_Patch_v1.0` | Pre-release | 刪除，改發 `v1.0.0` |
+| `RICH3_PATCH` | `Rich3_Patch_v1.0` | Pre-release | 刪除，改發 `v1.0.0` |
+| `RICH2_EDITOR` | `v1.0.0` | Latest | 刪除，重發 `v1.0.0` |
+
+舊的兩個 patch tag 本來就不符合 `RELEASE_RULES.md` 訂的命名慣例，這次一併清掉。
+產物命名與 Release 頁面格式一律依 `RELEASE_RULES.md`。
+
+`CHANGELOG.md` 三個專案目前都沒有，需補建（`RELEASE_RULES.md` 的發佈門檻與
+Release 頁面內文都依賴它）。第一版直接寫目前已完成的功能。
+
+---
+
+## 9. 尚待討論的細節
+
+1. **WebView2 的取捨**：接受 Win7/8 使用者需額外安裝執行期嗎？還是要保留 Python 版當作舊系統的備援發佈？（見第 6 節 🔴）
 2. **發佈形式**：portable 單檔、NSIS 安裝檔，還是兩種都出？（patcher 通常是丟進遊戲資料夾就跑，portable 較合用）
-3. **版本號**：Tauri 版要延續 `1.0.0`，還是視為破壞性改版跳 `2.0.0`？（依 `VERSION.md` 的規則，技術棧整個換掉算 MAJOR）
