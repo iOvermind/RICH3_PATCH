@@ -46,9 +46,7 @@
 [RICH3_PATCH][v1.0.0][Setup].exe
 ```
 
----
-
-## 5. 建立 Git Tag 並推送
+### Step 2：建立 Git Tag 並推送
 
 Git Tag 的慣例維持單純帶 v 即可（Tag 本身不需要加中括號）：
 
@@ -59,9 +57,7 @@ git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```
 
----
-
-## 6. 建立 GitHub Release 頁面
+### Step 3：建立 GitHub Release 頁面
 
 1. 至 GitHub Releases 頁面點選 `Draft a new release`。
 2. 選擇剛推送的 Tag（如 `v1.0.0`）。
