@@ -24,3 +24,12 @@ venv/
 .venv/
 
 *.pfx
+
+# Node / Vite（Tauri 版前端）
+node_modules/
+*.local
+
+# 發佈產物
+release/
+
+# Rust 的產物在 src-tauri/.gitignore

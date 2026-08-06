@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大富翁3 Patch</title>
+
+  <!-- Tailwind 由 Vite 在建置時產出（色票見 src/style.css 的 @theme），不連任何 CDN。
+       色票與 RICH2_EDITOR 共用，但版型是單欄小工具，不套用那邊的三欄工作站版型。
+       這份版面與 RICH2_PATCH 逐字相同，只有文案不同。 -->
+</head>
+
+<body class="bg-background text-on-background font-body h-screen flex flex-col overflow-hidden text-sm">
+
+  <!-- 標題列 -->
+  <header class="flex items-baseline gap-2 w-full px-5 pt-6 pb-4 shrink-0 border-b border-outline-variant/15">
+    <span class="text-base font-bold font-headline tracking-tight">大富翁3 Patch</span>
+    <span class="text-[11px] text-on-surface-variant/60">Rich Patch Series</span>
+  </header>
+
+  <main class="flex-1 flex flex-col gap-3 px-5 py-4 min-h-0">
+
+    <!-- 遊戲目錄。輸入框與兩顆按鈕同一列，三者高度一致（h-9），寬度各自不同。 -->
+    <section class="flex flex-col gap-1.5 shrink-0">
+      <label for="dir">遊戲目錄</label>
+      <div class="flex gap-2">
+        <input id="dir" type="text" readonly placeholder="尚未選擇"
+          class="flex-1 min-w-0 h-9 rounded-md bg-surface-container-low border border-outline-variant/40 px-3
+                 text-xs font-mono text-on-surface truncate focus:outline-none">
+        <button id="browse"
+          class="shrink-0 h-9 rounded-md border border-outline-variant/40 bg-surface-container-high px-3
+                 text-sm hover:bg-surface-container-highest disabled:opacity-40
+                 disabled:cursor-not-allowed transition-colors">瀏覽…</button>
+        <button id="start"
+          class="shrink-0 h-9 rounded-md bg-primary-container text-on-primary-container text-sm font-medium px-7
+                 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition">開始</button>
+      </div>
+      <p class="text-[11px] text-on-surface-variant/60">選到有 <code class="font-mono">RICH3.EXE</code> 的那一層。日曆要逐日換算，會跑數十秒。</p>
+    </section>
+
+    <!-- 進度 -->
+    <div class="shrink-0 h-1.5 rounded-full bg-surface-container-high overflow-hidden">
+      <div id="bar" class="h-full w-0 bg-primary transition-[width] duration-200"></div>
+    </div>
+
+    <!-- 日誌。select-text 是刻意的：其他地方不給選取，但日誌要能複製出來回報問題。 -->
+    <section id="log"
+      class="flex-1 min-h-0 overflow-y-auto rounded-md bg-surface-container-lowest border border-outline-variant/25
+             p-2.5 font-mono text-[11px] leading-relaxed select-text space-y-0.5">
+      <p class="text-on-surface-variant/50">選好遊戲目錄後按「開始」。</p>
+    </section>
+
+  </main>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

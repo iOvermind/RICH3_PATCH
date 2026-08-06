@@ -1,0 +1,31 @@
+[package]
+name = "rich3-patch"
+version = "1.0.0"
+description = "大富翁3 Patch"
+edition = "2021"
+rust-version = "1.77"
+
+# 實作放在 lib，main.rs 只是進入點——這樣 patch 引擎才能被單元測試與 oracle 比對引用。
+[lib]
+name = "rich3_patch"
+path = "src/lib.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+# 農曆換算。這是 6tail lunar-javascript / lunar-go 的移植，與 Python 版的
+# lunar_python 同源——已實測 14612 天逐位元組相同。換掉前必須重跑 oracle 比對。
+lunar-rs = "1.0.0-rc1"
+
+# 這是要發佈給人下載的桌面工具，體積比編譯時間重要。與 RICH2_EDITOR 同一組設定。
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

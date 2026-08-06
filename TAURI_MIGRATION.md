@@ -82,7 +82,12 @@ RICH2_PATCH/
   rich2_patch.spec         ← 暫時保留
 ```
 
-`RICH3_PATCH` 相同，但 `src-tauri/src/patch/` 多出 `calendar.rs`、`mkf.rs`、`rich3.rs`，且 `EVENTVOC`/`NEWSVOC`/`SCREEN` 改用 Tauri bundle resources。
+`RICH3_PATCH` 相同，但 `src-tauri/src/patch/` 多出 `calendar.rs`、`mkf.rs`、`rich3.rs`。
+
+> **實作修正（2026-08-06）**：`EVENTVOC`/`NEWSVOC`/`SCREEN` 原本計畫改用 Tauri bundle
+> resources，實作時發現**行不通**——那個機制是把檔案放在安裝目錄旁邊，只對安裝版有效，
+> 而主力產物是 portable 單檔 exe，拿不到外部資源。改為 `build.rs` 在編譯期以
+> `include_bytes!` 嵌入，等同 PyInstaller onefile 的效果。
 
 ### 共用規格（兩專案逐字元一致）
 
@@ -125,6 +130,16 @@ Python 版用 `lunar_python`；Rust 端候選是 `lunar-rs 1.0.0-rc1`（基於�
 
 - 完全一致 → 放行
 - 有差異 → 改用其他 crate，或自行移植 `lunar_python` 的換算表；**絕不接受「差幾天而已」**，這會直接讓遊戲內農曆顯示錯誤
+
+> **實作結果（2026-08-06）：通過。** 以 2016-01-01 起算 14612 天，兩版產出的 `Cald.a`
+> 與 `Cald.b` **逐位元組相同**。原因是 `lunar-rs` 其實是 6tail `lunar-javascript` /
+> `lunar-go` 的移植，與 `lunar_python` 同源，並非兩個獨立實作。
+>
+> 這項驗證刻意提前到步驟 4 之前先做——萬一對不上，整個移植就得改用別的方案，
+> 先寫完再驗等於賭上全部工時。
+>
+> 後續全流程比對（含 EXE / MAP / SCREEN / 兩個語音 MKF）同樣**七個檔案全數相同**，
+> 整個遊戲目錄逐檔比對亦無差異。
 
 ### 步驟 6 — 改寫 `build.ps1` 並產出兩支 EXE
 驅動 `npm ci` + `tauri build`，產出 portable exe 與 NSIS installer，沿用簽章流程，最後回報體積。實機啟動驗證。

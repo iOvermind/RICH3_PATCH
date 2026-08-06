@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "patcher 的前端只需要一件事：讓使用者用系統對話框挑選遊戲資料夾。所有檔案讀寫都在 Rust 端完成，因此刻意不給前端任何 fs 權限——這是與 RICH2_EDITOR 最主要的差異。",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "dialog:allow-open"
+  ]
+}

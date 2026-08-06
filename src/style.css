@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* Rich Patch Series 與 RICH2_EDITOR 共用同一份色票與字體設定，維持系列的視覺一致。
+   兩支 patcher 的這份檔案應保持一致，只有標題文字不同。 */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-background: #131313;
+  --color-surface: #131313;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container-low: #1b1b1c;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #353535;
+  --color-surface-bright: #393939;
+  --color-on-background: #e5e2e1;
+  --color-on-surface: #e5e2e1;
+  --color-on-surface-variant: #c0c7d3;
+  --color-outline-variant: #404751;
+  --color-primary: #9fcaff;
+  --color-primary-container: #007acc;
+  --color-on-primary-container: #ffffff;
+  --color-tertiary: #66dd8b;
+  --color-error: #ffb4ab;
+
+  /* 文字一律用系統字體，不自帶——patcher 只顯示固定的介面文字與日誌，
+     不需要像 editor 那樣處理遊戲字型的缺字問題。 */
+  --font-headline: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "Microsoft JhengHei", monospace;
+}
+
+/* Tailwind v4 的 preflight 把按鈕游標改成 default，這裡補回手指 */
+button {
+  cursor: pointer;
+}
+
+/* 桌面應用程式不該有網頁那種文字選取行為，但日誌要能複製出來（見 index.html 的 select-text） */
+body {
+  user-select: none;
+}
