@@ -220,8 +220,8 @@ cargo test --test oracle -- --nocapture
 
 | 產物 | 用途 |
 | :--- | :--- |
-| `release/RICH3_PATCH-v1.0.0-Portable.exe` | 免安裝，直接執行 |
-| `release/RICH3_PATCH-v1.0.0-Setup.exe` | NSIS 安裝檔 |
+| `release/RICH3_PATCH-v1.0.1-Portable.exe` | 免安裝，直接執行 |
+| `release/RICH3_PATCH-v1.0.1-Setup.exe` | NSIS 安裝檔 |
 | `release/SHA256SUMS.txt` | 校驗碼，**必附**（RELEASE_RULES §4.3） |
 
 命名依 [docs/rules/RELEASE_RULES.md](docs/rules/RELEASE_RULES.md) §2.1：只用 `A-Za-z0-9.-_`，因為 GitHub 會把其餘字元換成點。`release/` 不進版控。
