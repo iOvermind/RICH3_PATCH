@@ -248,8 +248,8 @@ def patch_map_mkf(target_dir, step):
 
     backup_file(map_target)
     map_patches = [
-        {"name": "台北新生南路蓋屋 360 -> 3600", "targets": [(bytes.fromhex("FC 08 00 00 10 0E"), bytes.fromhex("FC 08 00 00 68 01"))]},
-        {"name": "台北建國北路過路費 2000 -> 200", "targets": [(bytes.fromhex("84 03 00 00 C8 00"), bytes.fromhex("84 03 00 00 D0 07"))]}
+        {"name": "台北新生南路蓋屋價 3600 -> 360", "targets": [(bytes.fromhex("FC 08 00 00 10 0E"), bytes.fromhex("FC 08 00 00 68 01"))]},
+        {"name": "台北建國北路二層房過路費 200 -> 2000", "targets": [(bytes.fromhex("84 03 00 00 C8 00"), bytes.fromhex("84 03 00 00 D0 07"))]}
     ]
     return patch_binary(map_target, map_patches)
 

@@ -5,10 +5,6 @@
 格式依 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)，版本號依語意化版本
 （見 [docs/rules/VERSION_RULES.md](docs/rules/VERSION_RULES.md)）。日期格式為 `YYYY-MM-DD`。
 
-> 2026-03-23 曾發佈 `Rich3_Patch_v1.0` 預覽版。該 tag 不符合現行命名慣例，將於
-> `v1.0.0` 發佈時一併移除（見 [TAURI_MIGRATION.md](TAURI_MIGRATION.md)），因此不列入
-> 本紀錄。以下 `[Unreleased]` 即 `v1.0.0` 將包含的內容。
-
 ## [Unreleased]
 
 ### Added (新增)
