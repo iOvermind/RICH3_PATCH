@@ -13,13 +13,14 @@
 
 <body class="bg-background text-on-background font-body h-screen flex flex-col overflow-hidden text-sm">
 
-  <!-- 標題列 -->
-  <header class="flex items-baseline gap-2 w-full px-5 pt-6 pb-4 shrink-0 border-b border-outline-variant/15">
+  <!-- 標題列。四周留白一律 20px（px-5 / pt-5 / pb-5），
+       header 與 main 之間靠框線分隔，各自出 16px。 -->
+  <header class="flex items-baseline gap-2 w-full px-5 pt-5 pb-4 shrink-0 border-b border-outline-variant/15">
     <span class="text-base font-bold font-headline tracking-tight">大富翁3 Patch</span>
     <span class="text-[11px] text-on-surface-variant/60">Rich Patch Series</span>
   </header>
 
-  <main class="flex-1 flex flex-col gap-3 px-5 py-4 min-h-0">
+  <main class="flex-1 flex flex-col gap-3 px-5 pt-4 pb-5 min-h-0">
 
     <!-- 遊戲目錄。輸入框與兩顆按鈕同一列，三者高度一致（h-9），寬度各自不同。 -->
     <section class="flex flex-col gap-1.5 shrink-0">
