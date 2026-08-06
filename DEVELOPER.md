@@ -189,8 +189,8 @@ cargo test
 `tests/oracle.rs` 需要真實遊戲檔，而**遊戲原始檔不進版控**（版權）。未設環境變數時會印出 `⏭ 略過` 並通過——**這代表沒測到，不代表測過了**。
 
 ```powershell
-$env:RICH3_GAME_DIR = 'D:\path\to\three'
-$env:RICH3_OUT_DIR  = 'D:\path\to\out'
+$env:RICH3_GAME_DIR = '<未修改的遊戲目錄>'   # 目前放在 RICH3_EDITOR\rich3\original\
+$env:RICH3_OUT_DIR  = '<產出位置>'
 cargo test --test oracle -- --nocapture
 ```
 
