@@ -204,9 +204,13 @@ RICH3_PATCH/
 
 ### 舊實作的保留
 
-目前無。
+本專案正在遷移到 Rust + Tauri（見 [TAURI_MIGRATION.md](TAURI_MIGRATION.md)）。`main` 走 Tauri 版，Python + tkinter 版依 `docs/rules/DEVELOPER_RULES.md` §4.3 以分支保留：
 
-本專案規劃遷移到 Rust + Tauri（見 [TAURI_MIGRATION.md](TAURI_MIGRATION.md)）。屆時 Python 版**必須**依 `docs/rules/DEVELOPER_RULES.md` §4.3 以分支保留、不得直接刪除；主分支走 Tauri 版。Python 版同時是驗證農曆換算正確性的基準，須在 14612 天逐位元組比對通過後才解除保留。
+| 分支 | 內容 | 保留原因 | 解除條件 |
+| :--- | :--- | :--- | :--- |
+| `legacy/python-tkinter` | 遷移前的完整 Python + tkinter 實作，含 `lunar_python` 的農曆換算 | 是驗證 Tauri 版正確性的基準（oracle）。**農曆換算是最大風險**——Rust 端的候選函式庫是不同實作，`Cald.a` / `Cald.b` 的 14612 天資料必須逐位元組相同，不接受「差幾天而已」 | 14612 天比對通過（比對時兩邊須固定同一個基準日期，見 §10），且 Tauri 版實機驗收完成後 |
+
+**該分支不再接受新功能**，僅在有明確理由時接受修正。**不得刪除**。
 
 ---
 
