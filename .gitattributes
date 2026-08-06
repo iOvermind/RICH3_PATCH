@@ -3,3 +3,4 @@
 *.py text eol=crlf
 # PowerShell 5.1 讀 .ps1 預設用 ANSI，沒 BOM 中文會爛掉
 *.ps1 text eol=crlf
+*.md text eol=lf
