@@ -3,9 +3,9 @@
 > 這份文件給**要修改這個專案的人**。使用說明請看 [README.md](README.md)。
 > 文件與發佈規範見 [docs/rules/](docs/rules/)。
 
-> ⚠ **本專案正在遷移中。** `main` 已改為 Rust + Tauri，Python + tkinter 版仍留在庫內
-> 當作驗證正確性的基準（oracle），驗收通過後才會移除。詳見
-> [TAURI_MIGRATION.md](TAURI_MIGRATION.md) 與 §8。
+> **遷移已完成。** `main` 是 Rust + Tauri，發佈中的版本也是它。Python + tkinter 版
+> 已從 `main` 移除，完整保留在 `legacy/python-tkinter` 分支（見 §8）。
+> 過程與驗收記錄在 [TAURI_MIGRATION.md](TAURI_MIGRATION.md)。
 
 ---
 
@@ -24,14 +24,9 @@
 | MSVC Build Tools | — | 編譯 Rust，需「使用 C++ 的桌面開發」工作負載 |
 | WebView2 Runtime | — | **執行**所需，Windows 10/11 已內建 |
 
-### Python 版（保留中的 oracle）
-
-| 項目 | 版本 | 用途 |
-| :--- | :--- | :--- |
-| Python | 3.10 以上（實測 3.14） | 基準實作 |
-| `lunar_python` | 1.3.9 以上 | 基準的農曆換算 |
-
 **作業系統限制**：產物僅供 Windows。
+
+要重跑 oracle 比對時才需要 Python 3.10 以上與 `lunar_python`（`main` 上已無 Python 檔案，見 §6）。
 
 ---
 
@@ -59,11 +54,6 @@
    cd src-tauri; cargo test
    ```
 
-5. 要跑 Python 版當基準時，另外安裝
-   ```powershell
-   python -m pip install -r requirements.txt
-   ```
-
 ---
 
 ## 3. 日常開發
@@ -71,7 +61,6 @@
 ```powershell
 npm run app:dev            # 桌面版：原生視窗 + Vite HMR
 npm run dev                # 只開前端，沒有 Tauri API
-python main.py             # Python 基準版
 ```
 
 **除錯**：引擎的每一則訊息同時 `println!` 到終端機（格式與 Python 版逐字相同，方便並排對照）與發出 Tauri 事件 `patch://log`，酬載為 `{ level, message, step, total }`。
@@ -108,7 +97,6 @@ RICH3_PATCH/
 │  │     └─ rich3.rs        六個步驟與 14 條特徵碼
 │  └─ tests/oracle.rs       拿真實遊戲檔跑一遍，供與 Python 版比對
 ├─ build.ps1                建置與發佈打包（含版本號一致性檢查）
-├─ main.py                  ← Python 基準版（oracle），驗收通過後移除
 └─ docs/rules/              文件與發佈規範（正典在 DEV_TEMPLATE）
 ```
 
@@ -196,13 +184,53 @@ cargo test --test oracle -- --nocapture
 
 ### 與 Python 版的 oracle 比對
 
-這是 Tauri 版能否取代 Python 版的唯一判準，**農曆是其中風險最高的一項**。
+這是 Tauri 版能否取代 Python 版的判準，**農曆是其中風險最高的一項**。動到 `patch/` 或 `lunar-rs` 版本後**必須**重跑。
 
-⚠ **兩邊必須用同一個基準日期。** 日曆以「執行當下年份 −10」為起點，不固定日期就一定對不上。`tests/oracle.rs` 固定為 2026-08-06（起點 2016-01-01）；跑 Python 版時要把 `generate_calendars` 裡的 `now` 改成同一天。
+Python 版已從 `main` 移除，要跑基準時從分支取出到庫外：
+
+```powershell
+git worktree add ..\rich3-oracle legacy/python-tkinter
+python -m pip install -r ..\rich3-oracle\requirements.txt
+```
+
+⚠ **兩邊必須用同一個基準日期。** 日曆以「執行當下年份 −10」為起點，不固定日期就一定對不上。Rust 端由 `tests/oracle.rs` 指定；Python 端要覆寫 `datetime.datetime.now()`：
+
+```python
+import sys, datetime
+sys.path.insert(0, r'..\rich3-oracle')
+class Fixed(datetime.datetime):
+    @classmethod
+    def now(cls, tz=None): return cls(2026, 8, 7, 12, 0, 0)   # 與 Rust 端同一天
+import main
+main.datetime.datetime = Fixed
+main.run_patch(r'<py 複本>', lambda m: None, lambda m: sys.exit(1))
+```
+
+⚠ 未打包的 Python 偵測不到 `_MEIPASS`，會跳過資源釋放——要先把 `EVENTVOC` / `NEWSVOC` / `SCREEN` 複製進 py 複本，打包版才會自己釋放。
 
 比對範圍：`Cald.a`、`Cald.b`、`RICH3.EXE`、`MAP.MKF`、`SCREEN.MKF`、`NEWSVOC.MKF`、`EVENTVOC.MKF` 的 SHA-256 全部相同。
 
-**2026-08-06 實測（農曆單項）：以 2016-01-01 起算 14612 天，`lunar_python` 與 `lunar-rs` 產出的 `Cald.a` / `Cald.b` 逐位元組相同。**
+### 兩個層級都要驗
+
+| 層級 | 驗什麼 | 怎麼跑 |
+| :--- | :--- | :--- |
+| 函式庫 | 引擎邏輯正確 | `cargo test --test oracle` |
+| **發佈產物** | **打包、LTO、strip、資源嵌入之後行為仍相同** | 直接執行 `release\` 裡的 portable exe |
+
+只驗函式庫是不夠的——中間隔著 Tauri 打包與資源嵌入。產物層級要用 GUI 跑，關鍵在**取得前景視窗**：
+
+```powershell
+# Windows 不允許背景程序隨意搶前景，光呼叫 SetForegroundWindow 會被擋。
+# 必須先 AttachThreadInput 把自己的輸入佇列接到目標與現有前景視窗的執行緒上。
+AttachThreadInput(me, foreThread, true);
+AttachThreadInput(me, targetThread, true);
+ShowWindow(h, SW_RESTORE); BringWindowToTop(h); SetForegroundWindow(h);
+```
+
+沒做這步的話模擬點擊約有一半機率靜靜地不生效，看起來像程式沒反應。
+
+**2026-08-07 實測**：以 `rich3\original` 為來源、基準日期 2026-08-07，實際發佈的
+`RICH3_PATCH-v1.0.1-Portable.exe` 與 Python 版產出的**七個檔案全數逐位元組相同**。
 
 ---
 
@@ -254,7 +282,7 @@ cargo test --test oracle -- --nocapture
 
 | 分支 | 內容 | 保留原因 | 解除條件 |
 | :--- | :--- | :--- | :--- |
-| `legacy/python-tkinter` | 遷移前的完整 Python + tkinter 實作，含 `lunar_python` 的農曆換算 | 是驗證 Tauri 版正確性的基準（oracle）。農曆是最大風險——`lunar-rs` 與 `lunar_python` 是不同專案，必須逐位元組確認 | §6 的全項比對通過，且實機驗收完成後 |
+| `legacy/python-tkinter` | 遷移前的完整 Python + tkinter 實作，含 `lunar_python` 的農曆換算與打包腳本 | 是驗證 Tauri 版正確性的基準（oracle）。農曆是最大風險——`lunar-rs` 與 `lunar_python` 是不同專案，必須逐位元組確認 | **無**——這個分支永久保留 |
 
 **該分支不再接受新功能**，僅在有明確理由時接受修正。**不得刪除**。
 

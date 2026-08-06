@@ -1,6 +1,8 @@
 # Rich Patch Series — 遷移到 Rust + Tauri 計畫書
 
-> 狀態：**待審核**。本文件寫完即停，尚未動工。
+> 狀態：**已完成**（2026-08-07）。六個步驟全數走完，兩支 patcher 皆發佈 v1.0.1。
+> Python 版已從 `main` 移除，完整保留在 `legacy/python-tkinter` 分支。
+> 驗收結果與過程中的修正記錄在本文件各步驟的引言方塊裡。
 > 撰寫日期：2026-08-04
 > 涵蓋專案：`RICH2_PATCH`、`RICH3_PATCH`
 
@@ -78,8 +80,8 @@ RICH2_PATCH/
       patch/mod.rs         共用：backup_file / patch_binary / 進度事件
       patch/rich2.rs       RUN.EXE 的 4 條特徵碼
   build.ps1                改為驅動 tauri build
-  main.py                  ← 暫時保留（oracle）
-  rich2_patch.spec         ← 暫時保留
+  （main.py 已於 2026-08-07 移除，見 legacy/python-tkinter 分支）
+
 ```
 
 `RICH3_PATCH` 相同，但 `src-tauri/src/patch/` 多出 `calendar.rs`、`mkf.rs`、`rich3.rs`。
