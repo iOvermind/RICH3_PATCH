@@ -133,7 +133,7 @@ Python 版用 `lunar_python`；Rust 端候選是 `lunar-rs 1.0.0-rc1`（基於�
 
 ```text
 [RICH2_PATCH][v1.0.0][Setup].exe
-[RICH2_PATCH][v1.0.0][Portable].zip
+[RICH2_PATCH][v1.0.0][Portable].exe
 ```
 
 ---
