@@ -129,11 +129,11 @@ Python 版用 `lunar_python`；Rust 端候選是 `lunar-rs 1.0.0-rc1`（基於�
 ### 步驟 6 — 改寫 `build.ps1` 並產出兩支 EXE
 驅動 `npm ci` + `tauri build`，產出 portable exe 與 NSIS installer，沿用簽章流程，最後回報體積。實機啟動驗證。
 
-產物命名必須符合 `docs/rules/RELEASE_RULES.md` 的保留中括號格式：
+產物命名必須符合 `docs/rules/RELEASE_RULES.md` 的格式（只用 A-Za-z0-9.-_）：
 
 ```text
-[RICH2_PATCH][v1.0.0][Setup].exe
-[RICH2_PATCH][v1.0.0][Portable].exe
+RICH2_PATCH-v1.0.0-Setup.exe
+RICH2_PATCH-v1.0.0-Portable.exe
 ```
 
 ---
