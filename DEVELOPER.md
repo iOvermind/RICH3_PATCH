@@ -90,7 +90,7 @@ RICH3_PATCH/
 ├─ package.json             版本號的單一來源
 ├─ src/
 │  ├─ main.ts               前端進入點（與 RICH2_PATCH 逐字相同）
-│  └─ style.css             Tailwind 色票，與 RICH2_EDITOR 同一份 @theme
+│  └─ style.css             Tailwind 設定；色票引用 docs/rules/tokens.css
 ├─ EVENTVOC/ NEWSVOC/ SCREEN/   自製資源，編譯期嵌入執行檔（見 §5）
 ├─ src-tauri/
 │  ├─ build.rs              產生嵌入資源的程式碼 + tauri_build
@@ -163,7 +163,7 @@ RICH3_PATCH/
 
 #### 只跟 RICH2_EDITOR 共用色票與字體，版型完全自己來
 
-- **決定**：`src/style.css` 的 `@theme` 與 editor 逐字相同，版型則是單欄小工具，與 RICH2_PATCH 逐字相同。
+- **決定**：`src/style.css` 的 `@theme` 引用 `docs/rules/tokens.css` 的共用 token，版型則是單欄小工具，與 RICH2_PATCH 逐字相同。
 - **理由**：editor 是 1500×950 的編輯工作站，patcher 是按一下就跑完的小工具。共用色票已足以看出是同一系列。
 - **代價**：畫面程式碼無法與 editor 互通，只有設計 token 共用。
 
@@ -343,6 +343,7 @@ cargo test --test oracle -- --nocapture
 ## 相關文件
 
 - 使用說明：[README.md](README.md)
+- 介面規格：[INTERFACE.md](INTERFACE.md)
 - 變更紀錄：[CHANGELOG.md](CHANGELOG.md)
 - 遷移計畫：[TAURI_MIGRATION.md](TAURI_MIGRATION.md)
 - 文件與發佈規範：[docs/rules/](docs/rules/)

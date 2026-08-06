@@ -1,37 +1,38 @@
 @import "tailwindcss";
 
-/* Rich Patch Series 與 RICH2_EDITOR 共用同一份色票與字體設定，維持系列的視覺一致。
-   兩支 patcher 的這份檔案應保持一致，只有標題文字不同。 */
+/* 共用設計 token 的唯一來源。色值、字體堆疊、不透明度檔位、焦點與停用樣式都在裡面，
+   正典是 DEV_TEMPLATE，改動請見 docs/rules/INTERFACE_RULES.md §2.1。
+   下面的 @theme 只做「引用」不做「複製」——手抄兩份遲早會對不上。 */
+@import "../docs/rules/tokens.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-background: #131313;
-  --color-surface: #131313;
-  --color-surface-container-lowest: #0e0e0e;
-  --color-surface-container-low: #1b1b1c;
-  --color-surface-container-high: #2a2a2a;
-  --color-surface-container-highest: #353535;
-  --color-surface-bright: #393939;
-  --color-on-background: #e5e2e1;
-  --color-on-surface: #e5e2e1;
-  --color-on-surface-variant: #c0c7d3;
-  --color-outline-variant: #404751;
-  --color-primary: #9fcaff;
-  --color-primary-container: #007acc;
-  --color-on-primary-container: #ffffff;
-  --color-tertiary: #66dd8b;
-  --color-error: #ffb4ab;
+  --color-background: var(--token-color-background);
+  --color-surface: var(--token-color-surface);
+  --color-surface-container-lowest: var(--token-color-surface-container-lowest);
+  --color-surface-container-low: var(--token-color-surface-container-low);
+  --color-surface-container-high: var(--token-color-surface-container-high);
+  --color-surface-container-highest: var(--token-color-surface-container-highest);
+  --color-surface-bright: var(--token-color-surface-bright);
+  --color-on-background: var(--token-color-on-background);
+  --color-on-surface: var(--token-color-on-surface);
+  --color-on-surface-variant: var(--token-color-on-surface-variant);
+  --color-outline-variant: var(--token-color-outline-variant);
+  --color-primary: var(--token-color-primary);
+  --color-primary-container: var(--token-color-primary-container);
+  --color-on-primary-container: var(--token-color-on-primary-container);
+  --color-tertiary: var(--token-color-tertiary);
+  --color-error: var(--token-color-error);
+  --color-level-warn: var(--token-color-level-warn);
 
-  /* 文字一律用系統字體，不自帶——patcher 只顯示固定的介面文字與日誌，
-     不需要像 editor 那樣處理遊戲字型的缺字問題。 */
-  --font-headline: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
-  --font-body: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
-  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "Microsoft JhengHei", monospace;
+  --font-headline: var(--token-font-headline);
+  --font-body: var(--token-font-body);
+  --font-mono: var(--token-font-mono);
 }
 
 /* Tailwind v4 的 preflight 把按鈕游標改成 default，這裡補回手指 */
-button {
+button:not(:disabled) {
   cursor: pointer;
 }
 

@@ -1,0 +1,85 @@
+/* 共用設計 token —— 正典
+ *
+ * 這份檔案是「必須共用」項目的唯一來源（見 INTERFACE_RULES.md §4.1）。
+ * 各專案 @import 這個檔案，不得手抄色值；要改請先改這裡，再同步到各專案並以雜湊驗證。
+ *
+ * 名稱一律加 --token- 前綴，好讓各專案的樣式系統（Tailwind 的 @theme、SCSS 變數
+ * 或其他機制）能「引用」而不是「複製」——引用才有單一來源可言。
+ *
+ * 這裡只放跨專案必須一致的東西。字級、間距、控制項尺寸屬於「建議共用」，
+ * 由各專案在自己的 INTERFACE.md 記錄。
+ */
+
+:root {
+  /* ---------------------------------------------------------------
+   * 色票
+   *
+   * surface 一組是層次的來源：越上層的元素用越亮的階。層次一律靠色階表現，
+   * 不靠陰影或模糊。
+   * --------------------------------------------------------------- */
+  --token-color-background: #131313;
+  --token-color-surface: #131313;
+  --token-color-surface-container-lowest: #0e0e0e;
+  --token-color-surface-container-low: #1b1b1c;
+  --token-color-surface-container-high: #2a2a2a;
+  --token-color-surface-container-highest: #353535;
+  --token-color-surface-bright: #393939;
+
+  --token-color-on-background: #e5e2e1;
+  --token-color-on-surface: #e5e2e1;
+  --token-color-on-surface-variant: #c0c7d3;
+  --token-color-outline-variant: #404751;
+
+  --token-color-primary: #9fcaff;
+  --token-color-primary-container: #007acc;
+  --token-color-on-primary-container: #ffffff;
+  --token-color-tertiary: #66dd8b;
+  --token-color-error: #ffb4ab;
+
+  /* 日誌／訊息等級的配色。名稱與配色屬「必須共用」——它是跨程式、跨語言的契約。 */
+  --token-color-level-warn: #fcd34d;
+
+  /* ---------------------------------------------------------------
+   * 字體堆疊
+   *
+   * 文字一律用系統字體，不自帶字型檔。自帶子集永遠會缺字，而系統字體在
+   * 任何機器上都不會缺。圖示字體不在此列，由各專案自行處理。
+   * --------------------------------------------------------------- */
+  --token-font-headline: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+  --token-font-body: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", "PingFang TC", sans-serif;
+  --token-font-mono: ui-monospace, "Cascadia Mono", Consolas, "Microsoft JhengHei", monospace;
+
+  /* ---------------------------------------------------------------
+   * 不透明度檔位
+   *
+   * 只用這五檔。需要新的層級時先改這裡，不要就地寫一個新數字。
+   * --------------------------------------------------------------- */
+  --token-opacity-full: 1;        /* 主要文字、實心元件 */
+  --token-opacity-secondary: 0.7; /* 次要文字 */
+  --token-opacity-hint: 0.5;      /* 提示文字、placeholder */
+  --token-opacity-disabled: 0.4;  /* 停用狀態 */
+  --token-opacity-divider: 0.25;  /* 分隔線、邊框 */
+
+  /* ---------------------------------------------------------------
+   * 焦點
+   *
+   * 所有可以 Tab 走到的元件都必須看得見焦點。這是無障礙需求，不得省略。
+   * --------------------------------------------------------------- */
+  --token-focus-ring-width: 2px;
+  --token-focus-ring-offset: 2px;
+}
+
+/* 焦點樣式的共用實作。
+ *
+ * 用 :focus-visible 而非 :focus——滑鼠點擊不該冒出焦點框，鍵盤操作則必須有。
+ * 這條規則會蓋掉個別元件的 outline:none，讓「忘了補焦點樣式」不再可能發生。 */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: var(--token-focus-ring-width) solid var(--token-color-primary);
+  outline-offset: var(--token-focus-ring-offset);
+}
+
+/* 停用狀態的共用表現。 */
+:where(button, input, select, textarea):disabled {
+  opacity: var(--token-opacity-disabled);
+  cursor: not-allowed;
+}
