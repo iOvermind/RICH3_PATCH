@@ -129,7 +129,7 @@ Python 版用 `lunar_python`；Rust 端候選是 `lunar-rs 1.0.0-rc1`（基於�
 ### 步驟 6 — 改寫 `build.ps1` 並產出兩支 EXE
 驅動 `npm ci` + `tauri build`，產出 portable exe 與 NSIS installer，沿用簽章流程，最後回報體積。實機啟動驗證。
 
-產物命名必須符合 `RELEASE_RULES.md` 的保留中括號格式：
+產物命名必須符合 `docs/rules/RELEASE_RULES.md` 的保留中括號格式：
 
 ```text
 [RICH2_PATCH][v1.0.0][Setup].exe
@@ -181,10 +181,10 @@ Tauri 版驗證通過後，三個專案統一發佈 **v1.0.0**，直接取代現
 | `RICH3_PATCH` | `Rich3_Patch_v1.0` | Pre-release | 刪除，改發 `v1.0.0` |
 | `RICH2_EDITOR` | `v1.0.0` | Latest | 刪除，重發 `v1.0.0` |
 
-舊的兩個 patch tag 本來就不符合 `RELEASE_RULES.md` 訂的命名慣例，這次一併清掉。
-產物命名與 Release 頁面格式一律依 `RELEASE_RULES.md`。
+舊的兩個 patch tag 本來就不符合 `docs/rules/RELEASE_RULES.md` 訂的命名慣例，這次一併清掉。
+產物命名與 Release 頁面格式一律依 `docs/rules/RELEASE_RULES.md`。
 
-`CHANGELOG.md` 三個專案目前都沒有，需補建（`RELEASE_RULES.md` 的發佈門檻與
+`CHANGELOG.md` 三個專案目前都沒有，需補建（`docs/rules/RELEASE_RULES.md` 的發佈門檻與
 Release 頁面內文都依賴它）。第一版直接寫目前已完成的功能。
 
 ---
