@@ -94,7 +94,7 @@ RICH3_PATCH/
 │  │     ├─ engine.rs       ⚠ 共用引擎，與 RICH2_PATCH **逐字元相同**
 │  │     ├─ calendar.rs     Cald.a / Cald.b 產生
 │  │     ├─ mkf.rs          MKF 封裝檔的拆解與重組
-│  │     └─ rich3.rs        六個步驟與 14 條特徵碼
+│  │     └─ rich3.rs        六個步驟、EXE 的 14 條與 MAP.MKF 的 7 條特徵碼
 │  └─ tests/oracle.rs       拿真實遊戲檔跑一遍，供與 Python 版比對
 ├─ build.ps1                建置與發佈打包（含版本號一致性檢查）
 └─ docs/rules/              文件與發佈規範（正典在 DEV_TEMPLATE）
@@ -113,7 +113,7 @@ RICH3_PATCH/
 | 1 | `extract_bundled_folders` | 把嵌入的 `EVENTVOC` / `NEWSVOC` / `SCREEN` 釋放到遊戲目錄 |
 | 2 | `calendar::generate` | 產生 `Cald.a`（國曆）與 `Cald.b`（農曆），共 14612 天 |
 | 3 | `patch_exe` | `RICH3.EXE` 的 14 條特徵碼（含 1 條帶萬用位元組） |
-| 4 | `patch_map_mkf` | `MAP.MKF` 的 2 條物價修正 |
+| 4 | `patch_map_mkf` | `MAP.MKF` 的 7 條修正（2 條物價、5 條地點資料誤植） |
 | 5 | `patch_screen_mkf` | `SCREEN.MKF` 的索引表拆解與重組 |
 | 6 | `patch_audio_mkf` | `NEWSVOC` 與 `EVENTVOC` 兩個語音 MKF 的注入 |
 
@@ -169,7 +169,7 @@ cargo test
 | `patch/engine.rs` | 十六進位解析（含萬用位元組）、兩種替換模式、備份不覆蓋、沒命中就不寫檔 |
 | `patch/mkf.rs` | 拆解／重組往返一致、區塊長度改變後索引表重算、空檔案不崩潰 |
 | `patch/calendar.rs` | 產出長度、起點為當年往前十年的元旦、閏月取絕對值、`.bak` 不覆蓋 |
-| `patch/rich3.rs` | 14 條特徵碼長度一致、天數寫進搜尋組數、序號解析、嵌入資源數量 |
+| `patch/rich3.rs` | 21 條特徵碼長度一致、地點誤植修正的位元組數、天數寫進搜尋組數、序號解析、嵌入資源數量 |
 | `tests/oracle.rs` | 拿真實遊戲檔跑完整流程 |
 
 ### 會被略過的測試
@@ -208,7 +208,9 @@ main.run_patch(r'<py 複本>', lambda m: None, lambda m: sys.exit(1))
 
 ⚠ 未打包的 Python 偵測不到 `_MEIPASS`，會跳過資源釋放——要先把 `EVENTVOC` / `NEWSVOC` / `SCREEN` 複製進 py 複本，打包版才會自己釋放。
 
-比對範圍：`Cald.a`、`Cald.b`、`RICH3.EXE`、`MAP.MKF`、`SCREEN.MKF`、`NEWSVOC.MKF`、`EVENTVOC.MKF` 的 SHA-256 全部相同。
+比對範圍：`Cald.a`、`Cald.b`、`RICH3.EXE`、`SCREEN.MKF`、`NEWSVOC.MKF`、`EVENTVOC.MKF` 的 SHA-256 全部相同。
+
+⚠ **`MAP.MKF` 自 v1.0.2 起不再與 Python 版相同**，因為 v1.0.2 新增了 5 條 Python 版沒有的地點資料誤植修正。`legacy/python-tkinter` 不會補上這些規則（該分支只是農曆的比對基準）。要比對 `MAP.MKF` 時改用這個判準：**Rust 版產出與自己的 `MAP.MKF.bak` 相差 25 個位元組**——12 個來自兩條物價修正（各命中 3 處），13 個來自地點誤植修正（大陸 (1,0) 四個、台北三格各一個、大陸公園兩格各三個）。位元組數由 `patch/rich3.rs` 的單元測試把關，實際偏移見 `MAP_MKF_誤植修正.md`。
 
 ### 兩個層級都要驗
 
@@ -232,6 +234,16 @@ ShowWindow(h, SW_RESTORE); BringWindowToTop(h); SetForegroundWindow(h);
 **2026-08-07 實測**：以 `rich3\original` 為來源、基準日期 2026-08-07，實際發佈的
 `RICH3_PATCH-v1.0.1-Portable.exe` 與 Python 版產出的**七個檔案全數逐位元組相同**。
 
+**2026-08-08 實測**：v1.0.2 加入地點誤植修正後，兩個層級都重跑過。
+
+- **函式庫層級**（`cargo test --test oracle`，以 `rich3\original` 為來源、基準日期 2026-08-06）：
+  `MAP.MKF` 以外的六個檔案與 Python 版逐位元組相同；`MAP.MKF` 與 Python 版只差新增的那
+  13 個位元組，偏移與 `MAP_MKF_誤植修正.md` 的對照表逐項一致。
+- **產物層級**：實際發佈的 `RICH3_PATCH-v1.0.2-Portable.exe` 放進遊戲目錄複本執行，
+  `RICH3.EXE`、`MAP.MKF`、`SCREEN.MKF`、`NEWSVOC.MKF`、`EVENTVOC.MKF` 與函式庫層級的產出
+  **逐位元組相同**，五個 `.bak` 等於未修改的原始檔，`Cald.a` / `Cald.b` 各 58448 byte，
+  暫存資源資料夾已清除。
+
 ---
 
 ## 7. 建置與產物
@@ -248,8 +260,8 @@ ShowWindow(h, SW_RESTORE); BringWindowToTop(h); SetForegroundWindow(h);
 
 | 產物 | 用途 |
 | :--- | :--- |
-| `release/RICH3_PATCH-v1.0.1-Portable.exe` | 免安裝，直接執行 |
-| `release/RICH3_PATCH-v1.0.1-Setup.exe` | NSIS 安裝檔 |
+| `release/RICH3_PATCH-v1.0.2-Portable.exe` | 免安裝，直接執行 |
+| `release/RICH3_PATCH-v1.0.2-Setup.exe` | NSIS 安裝檔 |
 | `release/SHA256SUMS.txt` | 校驗碼，**必附**（RELEASE_RULES §4.3） |
 
 命名依 [docs/rules/RELEASE_RULES.md](docs/rules/RELEASE_RULES.md) §2.1：只用 `A-Za-z0-9.-_`，因為 GitHub 會把其餘字元換成點。`release/` 不進版控。
